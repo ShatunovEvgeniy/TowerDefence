@@ -182,21 +182,25 @@ class Board(QtWidgets.QFrame):
                 self.draw_rect(painter, rect.left() + coord[0] * self.tile_width(),
                                board_top + coord[1] * self.tile_height(), enemy.skin)
 
-        if self.fire_delay % 6 == 0:  # if it's fire iteration
-            for archer, enemy in self.archersAttacks:
-                archer_coord = self.archers[archer].position
-                enemy_coord = self.enemies[enemy].position
-                x1 = archer_coord[0] * self.tile_width() / 2 - self.tile_width()
-                y1 = board_top + archer_coord[1] * ((self.tile_height() - self.tile_height() / 3) / 2 - 2) - \
-                     (self.tile_height() / 2 - 20)
-                # x2 =
-                # y2 =
-                # painter.drawLine(x1, y1, x2, y2)
-            for wizard_line in self.wizardsAttacks:
-                painter.drawLine(wizard_line[0][0], wizard_line[0][1], wizard_line[1][0], wizard_line[1][1])
+        # if self.fire_delay % 6 == 0:  # if it's fire iteration
+        #     for archer, enemy in self.archersAttacks:
+        #         archer_coord = self.archers[archer].position
+        #         enemy_coord = self.enemies[enemy].position
+        #         x1 = archer_coord[0] * self.tile_width() / 2 - self.tile_width()
+        #         y1 = board_top + archer_coord[1] * ((self.tile_height() - self.tile_height() / 3) / 2 - 2) - \
+        #              (self.tile_height() / 2 - 20)
+        #         # x2 =
+        #         # y2 =
+        #         # painter.drawLine(x1, y1, x2, y2)
+        #     for wizard_line in self.wizardsAttacks:
+        #         painter.drawLine(wizard_line[0][0], wizard_line[0][1], wizard_line[1][0], wizard_line[1][1])
 
-    def draw_rect(self, painter, x, y, image):
-        rect = QtCore.QRect(int(x), int(y), int(self.tile_width()), int(self.tile_height()))
+    def draw_rect(self, painter, x, y, image, width=None, height=None):
+        if width is None:
+            width = self.tile_width()
+        if height is None:
+            height = self.tile_height()
+        rect = QtCore.QRect(int(x), int(y), int(width), int(height))
         painter.drawImage(rect, image)
 
 

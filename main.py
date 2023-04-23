@@ -8,7 +8,7 @@ class Board(QtWidgets.QFrame):
     SPEED = 500
 
     WIDTHINBLOCKS = 8
-    HEIGHTINBLOCKS = 8
+    HEIGHTINBLOCKS = 7
     max_possible_level = 7  # max possible level of enemies
 
     def __init__(self, parent):
@@ -171,7 +171,8 @@ class Board(QtWidgets.QFrame):
             j = coord[1]
             y = self.y_coord(i)
             x = self.x_coord(j, i)
-            self.draw_rect(painter, rect.left() + x, board_top + y, archer.skin)
+            self.draw_rect(painter, rect.left() + x + self.tile_width() / 9, board_top + y - self.tile_height() / 5,
+                           archer.skin, width=self.tile_width()/1.3, height=self.tile_height()/1.3)
 
         for wizard in self.wizards:
             coord = wizard.position
@@ -190,7 +191,8 @@ class Board(QtWidgets.QFrame):
                 j = coord[1]
                 y = self.y_coord(i)
                 x = self.x_coord(j, i)
-                self.draw_rect(painter, rect.left() + x, board_top + y, enemy.skin)
+                self.draw_rect(painter, rect.left() + x + self.tile_width() / 4, board_top + y, enemy.skin,
+                               width=self.tile_width()/2, height=self.tile_height()/2)
 
         if self.fire_delay % 6 == 0:  # if it's fire iteration
             for archer, enemy in self.archersAttacks:

@@ -20,6 +20,8 @@ class Board(QtWidgets.QFrame):
         self.coins = QtGui.QImage("Sprites/coins.png")
         self.menu = QtGui.QImage("Sprites/menu.png")
         self.heart = QtGui.QImage("Sprites/heart.png")
+        self.wave_menu = QtGui.QImage("Sprites/wave_level.png")
+        self.alien = QtGui.QImage("Sprites/alien.png")
 
         self.combo = BuyMenu()
 
@@ -64,25 +66,7 @@ class Board(QtWidgets.QFrame):
 
         self.board_generation()
 
-    def draw_menu(self, painter):
-        x = self.frameGeometry().width() / 10 * 6.5  # x coord of menu block
-        y = self.frameGeometry().height() / 100  # y coord of menu block
-
-        self.draw_rect(painter, x, y, self.menu, width=self.tile_width() * 2.5, height=self.tile_height() * 1.4)
-
-        self.draw_rect(painter, x * 1.16, y * 8, self.coins, width=self.tile_width() / 4, height=self.tile_height() / 3)
-
-        self.draw_rect(painter, x * 1.32, y * 8.2, self.heart, width=self.tile_width() / 3, height=self.tile_height() / 3)
-
-        font = QtGui.QFont()
-        font = painter.font()
-        font.setPixelSize(25)
-        painter.setFont(font)
-
-        painter.drawText(int(x * 1.08), int(y * 9), 100, 200, 0, str(self.money_count))
-
-        painter.drawText(int(x * 1.24), int(y * 9), 100, 200, 0, str(self.castleHP))
-
+    # UNITS AND TOWERS LOGIC
     def enemy_wave(self, wave_level):   # create enemies in accordance with wave_level
         self.wave_level += 1
         units_count = self.units_in_first_wave * wave_level  # units in wave: 4, 8, 12, 16...
@@ -95,18 +79,6 @@ class Board(QtWidgets.QFrame):
 
     def add_enemy_to_fight(self):
         self.enemies.append(UFO(copy.deepcopy(self.spawn_point), self.enemies_in_reserve.pop(0)))
-
-    def trajectory(self, coord):
-        road = self.road_generation()
-        if coord in road[:-1]:
-            coord = road[road.index(coord) + 1]
-        else:
-            coord[0] += 1
-            coord[1] += 1
-        return coord
-
-    def start(self):
-        self.timer.start(Board.SPEED, self)
 
     @staticmethod
     def in_range(target, tower) -> bool:  # return true if a particular unit in the tower's range
@@ -141,21 +113,26 @@ class Board(QtWidgets.QFrame):
             if self.move_counter % self.enemies[i].velocity == 0:
                 self.enemies[i].move(self.trajectory(self.enemies[i].position))
 
-    def castle_damage(self):
-        for enemy in self.enemies:
-            if enemy.position == self.castlePosition:
-                self.castleHP -= enemy.force
-
     def units_destroy(self):
         for enemy in self.enemies:
             if enemy.position == self.castlePosition:
                 self.enemies.remove(enemy)
 
+    def castle_damage(self):
+        for enemy in self.enemies:
+            if enemy.position == self.castlePosition:
+                self.castleHP -= enemy.force
+
+    # MONEY
     def get_money(self):
         for enemy in self.enemies:
             if not (enemy.is_alive()):
                 self.money_count += enemy.money_award
                 self.enemies.remove(enemy)
+
+    # TIMER AND MOUSE
+    def start(self):
+        self.timer.start(Board.SPEED, self)
 
     def timerEvent(self, a0: QtCore.QTimerEvent) -> None:
         if a0.timerId() == self.timer.timerId():
@@ -191,11 +168,15 @@ class Board(QtWidgets.QFrame):
                     and self.y_coord(coord[0]) <= a0.y() <= self.y_coord(coord[0]) + self.tile_height():
                 self.combo.show()
 
-    def tile_width(self):
-        return self.frameGeometry().width() / self.WIDTHINBLOCKS
-
-    def tile_height(self):
-        return self.frameGeometry().height() / self.HEIGHTINBLOCKS
+    # MAP GENERATION
+    def trajectory(self, coord):
+        road = self.road_generation()
+        if coord in road[:-1]:
+            coord = road[road.index(coord) + 1]
+        else:
+            coord[0] += 1
+            coord[1] += 1
+        return coord
 
     @staticmethod
     def road_generation():
@@ -209,7 +190,7 @@ class Board(QtWidgets.QFrame):
     def board_generation(self):
         road_traj = self.road_generation()
         tower_places = [[6, 1], [7, 3], [17, 1], [13, 4], [11, 7]]
-        enviroments = [[5, 5], [14, 6], [10, 1], [1, 2], [18, 4], [19, 1], [2, 7]]
+        environments = [[5, 5], [14, 6], [10, 1], [1, 2], [18, 4], [19, 1], [2, 7]]
         for i in range(0, 3 * self.HEIGHTINBLOCKS + 3, 1):
             for j in range(0, self.WIDTHINBLOCKS + 1, 1):
                 if [i, j] in tower_places:
@@ -232,13 +213,19 @@ class Board(QtWidgets.QFrame):
                             self.land_tiles.append(Road(np.array([i, j]), self.biome, "right"))
                 else:
                     self.land_tiles.append(Landscape(np.array([i, j]), self.biome, tower_place=False))
-                if [i, j] in enviroments:
-                    if [i, j] in enviroments[:3]:
+                if [i, j] in environments:
+                    if [i, j] in environments[:3]:
                         self.decor.append(EnvironmentalTiles(np.array([i, j]), self.biome, "plant2"))
-                    elif [i, j] in enviroments[3:6]:
+                    elif [i, j] in environments[3:6]:
                         self.decor.append(EnvironmentalTiles(np.array([i, j]), self.biome, "plant1"))
                     else:
                         self.decor.append(EnvironmentalTiles(np.array([i, j]), self.biome, "decoration1"))
+
+    def tile_width(self):
+        return self.frameGeometry().width() / self.WIDTHINBLOCKS
+
+    def tile_height(self):
+        return self.frameGeometry().height() / self.HEIGHTINBLOCKS
 
     def y_coord(self, y_line):
         height = self.tile_height()
@@ -254,13 +241,32 @@ class Board(QtWidgets.QFrame):
         else:
             return width * x_line
 
+    # PAINTING OF MAP
+    def draw_rect(self, painter, x, y, image, width=None, height=None):
+        if width is None:
+            width = self.tile_width()
+        if height is None:
+            height = self.tile_height()
+        rect = QtCore.QRect(int(x), int(y), int(width), int(height))
+        painter.drawImage(rect, image)
+
     def paintEvent(self, a0: QtGui.QPaintEvent) -> None:
         painter = QtGui.QPainter(self)
-
         rect = self.contentsRect()
-
         board_top = rect.bottom() - self.frameGeometry().height()
 
+        self.paint_land(painter, rect, board_top)
+        self.paint_decoration(painter, rect, board_top)
+        self.paint_towers(painter, rect, board_top)
+
+        if self.fire_counter % self.fire_delay == 1:  # if it's fire iteration
+            self.paint_shoots(painter)
+
+        self.paint_units(painter, rect, board_top)
+        self.draw_menu(painter)
+        self.draw_wave_menu(painter)
+
+    def paint_land(self, painter, rect, board_top):
         for land in self.land_tiles:
             i = land.position[0]
             j = land.position[1]
@@ -268,6 +274,7 @@ class Board(QtWidgets.QFrame):
             x = self.x_coord(j, i)
             self.draw_rect(painter, rect.left() + x, board_top + y, land.skin)
 
+    def paint_decoration(self, painter, rect, board_top):
         for decoration in self.decor:
             i = decoration.position[0]
             j = decoration.position[1]
@@ -276,6 +283,7 @@ class Board(QtWidgets.QFrame):
             self.draw_rect(painter, rect.left() + x + self.tile_width() / 5.5, board_top + y + self.tile_height() / 2.5,
                            decoration.skin, self.tile_width() / 1.5, self.tile_height() / 1.5)
 
+    def paint_towers(self, painter, rect, board_top):
         for archer in self.archers:
             coord = archer.position
             i = coord[0]
@@ -298,20 +306,21 @@ class Board(QtWidgets.QFrame):
             x = self.x_coord(j, i)
             self.draw_rect(painter, rect.left() + x, board_top + y, wizard.skin)
 
-        if self.fire_counter % self.fire_delay == 1:  # if it's fire iteration
-            for enemy, archer in self.archersAttacks:
-                x1 = self.x_coord(archer[1], archer[0]) + self.tile_width() / 2
-                y1 = self.y_coord(archer[0]) + self.tile_height() / 4
-                x2 = self.x_coord(enemy[1], enemy[0]) + self.tile_width() / 2
-                y2 = self.y_coord(enemy[0]) + self.tile_height() / 4
-                painter.drawLine(int(x1), int(y1), int(x2), int(y2))
-            for enemy, wizard in self.wizardsAttacks:
-                x1 = self.x_coord(wizard[1], wizard[0])
-                y1 = self.y_coord(wizard[0])
-                x2 = self.x_coord(enemy[1], enemy[0])
-                y2 = self.y_coord(enemy[0])
-                painter.drawLine(int(x1), int(y1), int(x2), int(y2))
+    def paint_shoots(self, painter):
+        for enemy, archer in self.archersAttacks:
+            x1 = self.x_coord(archer[1], archer[0]) + self.tile_width() / 2
+            y1 = self.y_coord(archer[0]) + self.tile_height() / 4
+            x2 = self.x_coord(enemy[1], enemy[0]) + self.tile_width() / 2
+            y2 = self.y_coord(enemy[0]) + self.tile_height() / 4
+            painter.drawLine(int(x1), int(y1), int(x2), int(y2))
+        for enemy, wizard in self.wizardsAttacks:
+            x1 = self.x_coord(wizard[1], wizard[0])
+            y1 = self.y_coord(wizard[0])
+            x2 = self.x_coord(enemy[1], enemy[0])
+            y2 = self.y_coord(enemy[0])
+            painter.drawLine(int(x1), int(y1), int(x2), int(y2))
 
+    def paint_units(self, painter, rect, board_top):
         for enemy in self.enemies:
             coord = enemy.position
             i = coord[0]
@@ -326,15 +335,35 @@ class Board(QtWidgets.QFrame):
                            width=self.tile_width() / width_compression,
                            height=self.tile_height() / height_compression)
 
-        self.draw_menu(painter)
+    def draw_wave_menu(self, painter):
+        x_wave = self.frameGeometry().width() / 100 * 65  # x coord of wave block
+        y_wave = self.frameGeometry().height() / 100 * 78  # y coord of wave block
+        self.draw_rect(painter, x_wave, y_wave, self.wave_menu,
+                       width=self.tile_width() * 2.5, height=self.tile_height() * 1.4)
+        self.draw_rect(painter, x_wave * 1.1, y_wave * 1.09, self.alien,
+                       width=self.tile_width() / 3, height=self.tile_height() / 2)
 
-    def draw_rect(self, painter, x, y, image, width=None, height=None):
-        if width is None:
-            width = self.tile_width()
-        if height is None:
-            height = self.tile_height()
-        rect = QtCore.QRect(int(x), int(y), int(width), int(height))
-        painter.drawImage(rect, image)
+    def draw_menu(self, painter):
+        x_menu = self.frameGeometry().width() / 100 * 65  # x coord of menu block
+        y_menu = self.frameGeometry().height() / 100  # y coord of menu block
+
+        self.draw_rect(painter, x_menu, y_menu, self.menu,
+                       width=self.tile_width() * 2.5, height=self.tile_height() * 1.4)
+        self.draw_rect(painter, x_menu * 1.32, y_menu * 8.2, self.heart,
+                       width=self.tile_width() / 3, height=self.tile_height() / 3)
+
+        self.draw_rect(painter, x_menu * 1.16, y_menu * 8, self.coins,
+                       width=self.tile_width() / 4, height=self.tile_height() / 3)
+        self.draw_rect(painter, x_menu * 1.32, y_menu * 8.2, self.heart,
+                       width=self.tile_width() / 3, height=self.tile_height() / 3)
+
+        font = painter.font()
+        font.setPixelSize(25)
+        painter.setFont(font)
+
+        painter.drawText(int(x_menu * 1.08), int(y_menu * 9), 100, 200, 0, str(self.money_count))
+
+        painter.drawText(int(x_menu * 1.24), int(y_menu * 9), 100, 200, 0, str(self.castleHP))
 
 
 class Unit:
@@ -538,10 +567,6 @@ class EnvironmentalTiles(Tile):
 
 
 class BuyMenu(QWidget):
-    """
-    This "window" is a QWidget. If it has no parent, it
-    will appear as a free-floating window as we want.
-    """
     def __init__(self):
         super().__init__()
         layout = QVBoxLayout()
@@ -558,10 +583,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.board = Board(self)
         self.setCentralWidget(self.board)
-        self.setGeometry(100, 100, 1500, 1000)
-        self.setWindowTitle('Ultra tower defence')
+        self.setGeometry(100, 50, 1500, 950)
+        self.setWindowTitle("Ultra tower defence")
         self.board.start()
-
         self.show()
 
 
